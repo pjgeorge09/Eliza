@@ -43,60 +43,132 @@ S_calm = []
 
 '''Catch their first name'''
 def catchName(myNameIsPhrase):
+    myNameIsPhrase = catchPreferredName(myNameIsPhrase)
     tokens = tokenize(myNameIsPhrase)
     for _ in tokens:
         _ = _.lower()
-        if re.search(r'my|name|is|i\'m|i|am|they|call|me|you|can|nickname|go|by|sometimes|hello', _) is None:
+        if re.search(r'^(my)$|^(name)$|^(is)$|^(i\'m)$|^(i)$|^(am)$|^(they)$|^(call)$|^(me)$|^(you)$|^(can)$|^(nickname)$|^(go)$|^(by)$|^(sometimes)$|^(hello)$', _) is None:
             return _.capitalize()
     return 
 
+''' Specifically catches "you can call me" "my friends call me" etc'''
+def catchPreferredName(myNameIsPhrase):
+    myNameIsPhrase = myNameIsPhrase.lower()
+    if re.search(r'(call(s|ed|ing)?\s(me))', myNameIsPhrase) is not None:
+        groupIt = re.search(r'(.*?)?(\s)?((call)(s|ed|ing)?\s(me))\s(.*?)$', myNameIsPhrase)
+        return groupIt.group(len(groupIt.groups()))
+    return myNameIsPhrase
+
 '''Turn any string into an array of tokens based on white space(+)'''
 def tokenize(phrase):
-    return re.split('\s+',phrase)
+    return re.split('\s+', phrase)
 
-def transition(word):
-    word = word.lower()
-    toBeNamed = { 
-            "i" : "you",
-            "am" : "are",
-            "we" : "you all",
-            "my" : "your",
-            "i'm" : "you are"}
-    if word not in toBeNamed:
-        return word
-    return toBeNamed[word]
+''' Trim weird start words to reponses '''
+def trim(sentence):
+    sentence = sentence.lower()
+    sentence = re.sub(r'^((yeah)|(yes)|(sure))(\W)?(\s)', "", sentence)
+    sentence = re.sub(r'^((nah)|(no)|(eh)|(maybe)|(well))(\W)?(\s)', "", sentence)
+    #sentence = re.sub(r'^((i don\'t know)|(i dont know)|(i am not sure)|(i\'m not sure))(\W)?(\s)', "", sentence)
+    
+    return sentence
+
+''' Flip the start of standard responeses. Example : She is --> Why is she | They are --> Why are they '''
+def  theyAreFlip(sentence):
+    r = random.randint(1,10)
+    #improved method of regex
+    toReturn = ""
+    groupIt = ""
+    
+    if(r < 3):
+        return "How does that make you feel\n"
+    elif(r >= 3 and r < 9):
+        if re.match(r'(.*?)\b(he|she|they|them|it|those|this|these)\s(is|are|am)\b\s(.*)?', sentence):
+            groupIt = re.search(r'(.*?)\b(he|she|they|them|it|those|this|these)\s(is|are|am)\b\s(.*)?', sentence)
+            return (toReturn + "Why " + groupIt.group(3) + " " + groupIt.group(2) + " " + groupIt.group(4) + "\n")
+        else:
+            return sentence
+    else:
+        return sentence
+    return sentence
+
+''' Flip sentences centered around THINK '''
+def  thinkFlip(sentence):
+    r = random.randint(1,10)
+    groupIt = ""
+    print("R = " + str(r))
+    if(r < 3):
+        return "How are those thoughts affecting you\n"
+    elif(r >= 3 and r < 7):
+        if re.match(r'(.*?)?\b(think|thinks)\b\s(.*)?', sentence):
+            groupIt = re.search(r'(.*?)?\b(think|thinks)\b\s(.*)?', sentence)
+            additive = "Why do"
+            pronouns = ["he ","she ","it "]
+            if(groupIt.group(1) in pronouns):
+                additive = additive + "es "
+            else:
+                additive = additive + " "
+            return (additive + groupIt.group(1) + groupIt.group(2) + " " + groupIt.group(3) + "\n")
+        else:
+            return sentence
+    elif(r>=7 and r <9):
+        if re.match(r'(.*?)?\b(think|thinks)\b\s(.*)?', sentence):
+            groupIt = re.search(r'(.*?)?\b(think|thinks)\b\s(.*)?', sentence)
+            additive = "Why do"
+            pronouns = ["he ","she ","it "]
+            if(groupIt.group(1) in pronouns):
+                additive = additive + "es "
+            else:
+                additive = additive + " "
+            return ("Why do " + groupIt.group(1) + " " + groupIt.group(2) + " that\n")
+        else:
+            return sentence
+    else:
+        return sentence
+    return sentence
 
 '''Working on making a basic full sentence translation for basic sentences.'''
 def flip(sentence):
+    sentence = sentence.lower()
+    sentence = trim(sentence)
     global vulgar
     tempvulgar = 0
-    sentence = sentence.lower()
     tokens = tokenize(sentence)
     toReturn = ""
     for token in tokens:
         if token in cursing:
             tempvulgar += 1
+            vulgar += 1
             token = re.sub(r'\w+', '<Explicative>', token)
             
-        token = re.sub(r'^i$|^(me)$', 'you', token)
-        token = re.sub(r'^(am)$', 'are', token)
-        token = re.sub(r'^(im)$|^(i\'m)$', 'you\'re', token)
-        token = re.sub(r'^my$', 'your', token)
-        token = re.sub(r'^was$', 'were', token)
+        token = re.sub(r'^i$|^(me)$', 'YOU', token)
+        token = re.sub(r'^(am)$', 'ARE', token)
+        token = re.sub(r'^(im)$|^(i\'m)$', 'YOU\'RE', token)
+        token = re.sub(r'^my$', 'YOUR', token)
+        token = re.sub(r'^was$', 'WERE', token)
+        token = re.sub(r'^(i\'ve)$', 'YOU\'VE', token)
+        token = re.sub(r'^(you\'re)$|^(youre)$|^(your\'e)$', 'I\'M', token)
+        token = re.sub(r'^(you)$', 'ME', token)
+        token = re.sub(r'^(dont)$', 'DON\'T', token)
         toReturn += (token + " ")  #Simply adds a space, can also be done in regex by adding a space to the sub but this is cleaner
-        
+    
+    if re.match(r'(.*?)\b(he|she|they|them|it|those|this|these)\s(is|are|am)\b\s(.*)?', toReturn):
+        toReturn = theyAreFlip(toReturn)    
+    elif re.match(r'(.*?)\b(think|thinks)\b\s(.*)?',toReturn):
+        toReturn = thinkFlip(toReturn)
+    
         
     toReturn = toReturn[:-1].capitalize() #Remove last space, and capitalize start of sentence
     if(tempvulgar>0):
         print("\nPlease try to keep the language decent. My AI could learn to curse, and eventually we could have terminators.")
+    
     return toReturn + "?"
 
 ''' Add a precursor statement to the start '''
 def cursor(word):
     r = random.randint(1,100)
-    precursors = ["I see. " , "Interesting. " , "Alright. " , "Ah. " , "Hmm. " , "Sure. " ]
-    postcursors = [" Why's that?\n" , " Let's explore more about that.\n" , " Tell me more.\n" , 
-                   " Why do you think that is?\n", " What do you think caused that?\n"]
+    precursors = ["I see. " , "Okay. " , "Alright. " , "Ah. " , "Hmm. " , "Sure. "]
+    postcursors = [" Let's explore more about that.\n" , " Tell me more.\n" , " How is that affecting you?\n",]
+    #" Why do you think that is?\n", " What do you think caused that?\n"," Why's that?\n" , 
     if r%2 == 0:
         if word == "pre":
             return random.choice(precursors)
@@ -111,6 +183,11 @@ def parseEmotions(sentence):
     toReturn = [0,0,0,0,0]
     
     return toReturn    
+
+
+
+
+
 
 '''--------------Init--------------'''
 phrase = input("Hi, I'm a psychotherapist. What is your name?\n")
